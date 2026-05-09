@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadratic Solver · Smart Method Selector</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://yt3.googleusercontent.com/EPZoEIG6aPlnX0ns12vDHQvxdhATbcixXz29C3gvRpy-SL1ABW_KQMJziYxBVQwP8nBOIWpLkB0=s160-c-k-c0x00ffffff-no-rj">
+<style>
+:root {
+  --bg:#07090f; --card:#111520; --border:rgba(255,255,255,0.07);
+  --blue:#4d9fff; --cyan:#00cfa8; --gold:#f5c842; --rose:#ff5f7e;
+  --violet:#a78bfa; --green:#52d68a; --text:#dde6f8;
+  --muted:rgba(221,230,248,0.38);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);min-height:100vh;font-family:'DM Mono',monospace;color:var(--text);display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(77,159,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(77,159,255,0.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 55% 38% at 50% 0%,rgba(77,159,255,0.08) 0%,transparent 65%),radial-gradient(ellipse 28% 25% at 88% 88%,rgba(0,207,168,0.05) 0%,transparent 55%);pointer-events:none;z-index:0;}
+.page{position:relative;z-index:1;width:100%;max-width:660px;padding:0 22px 80px;display:flex;flex-direction:column;align-items:center;gap:26px;}
+
+/* Header */
+.header{text-align:center;padding:42px 0 0;animation:rise 1s ease forwards;}
+.header h1{font-family:'DM Serif Display',serif;font-size:clamp(1.4rem,5.5vw,2.2rem);font-weight:400;color:var(--blue);letter-spacing:0.02em;line-height:1.2;}
+.header h1 em{font-style:italic;color:var(--cyan);}
+.header p{font-size:0.63rem;letter-spacing:0.24em;color:var(--muted);margin-top:10px;text-transform:uppercase;}
+
+/* Input card */
+.input-card{width:100%;background:var(--card);border:1px solid var(--border);padding:30px 30px 26px;position:relative;animation:rise 1s ease forwards 0.18s;opacity:0;}
+.input-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:0.22;}
+.input-label{font-size:0.60rem;letter-spacing:0.26em;color:var(--muted);text-transform:uppercase;text-align:center;margin-bottom:22px;}
+
+/* Live equation */
+.eq-display{font-family:'DM Serif Display',serif;font-size:clamp(1.7rem,7vw,2.8rem);text-align:center;margin-bottom:30px;letter-spacing:0.08em;line-height:1.3;min-height:1.4em;}
+.eq-display .ca{color:var(--blue);}
+.eq-display .cb{color:var(--cyan);}
+.eq-display .cc{color:var(--rose);}
+.eq-display .op{color:var(--muted);}
+
+/* Fields */
+.fields{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;}
+.field-grp{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.field-lbl{font-size:0.60rem;letter-spacing:0.20em;text-transform:uppercase;}
+.field-in{width:90px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);color:var(--text);font-family:'DM Mono',monospace;font-size:1rem;text-align:center;padding:11px 6px;outline:none;transition:border-color 0.3s,box-shadow 0.3s;}
+.field-in.fa:focus{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue);}
+.field-in.fb:focus{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan);}
+.field-in.fc:focus{border-color:var(--rose);box-shadow:0 0 0 1px var(--rose);}
+.field-in.invalid{border-color:var(--rose)!important;box-shadow:0 0 0 1px var(--rose)!important;}
+.frac-hint{text-align:center;font-size:0.57rem;letter-spacing:0.14em;color:var(--muted);margin-bottom:20px;line-height:1.8;}
+
+.analyse-btn{width:100%;font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.28em;text-transform:uppercase;padding:14px;background:rgba(77,159,255,0.08);border:1px solid rgba(77,159,255,0.28);color:var(--blue);cursor:pointer;transition:all 0.3s;}
+.analyse-btn:hover{background:rgba(77,159,255,0.16);border-color:var(--blue);}
+
+/* Method panel */
+.method-panel{width:100%;background:var(--card);border:1px solid var(--border);padding:28px 28px 24px;display:none;position:relative;animation:rise 0.6s ease forwards;}
+.method-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.22;}
+.method-panel.show{display:block;}
+.mp-title{font-size:0.60rem;letter-spacing:0.28em;color:var(--muted);text-transform:uppercase;margin-bottom:18px;text-align:center;}
+
+.suggestion{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;background:rgba(0,207,168,0.06);border:1px solid rgba(0,207,168,0.22);margin-bottom:22px;}
+.suggest-icon{font-size:1.3rem;flex-shrink:0;margin-top:2px;}
+.suggest-body{flex:1;}
+.suggest-head{font-family:'DM Serif Display',serif;font-size:clamp(0.95rem,3.5vw,1.2rem);color:var(--cyan);margin-bottom:6px;}
+.suggest-why{font-size:0.68rem;letter-spacing:0.10em;color:var(--muted);line-height:1.8;white-space:pre-line;}
+
+.mp-label{font-size:0.58rem;letter-spacing:0.24em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;text-align:center;}
+.methods-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.method-btn{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;padding:12px 10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.3s;text-align:center;line-height:1.5;position:relative;overflow:hidden;}
+.method-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.method-btn.recommended{border-color:rgba(0,207,168,0.4);color:var(--cyan);background:rgba(0,207,168,0.05);}
+.method-btn.recommended::after{content:'★  Suggested';position:absolute;top:5px;right:8px;font-size:0.45rem;letter-spacing:0.12em;color:var(--cyan);opacity:0.7;}
+.method-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(245,200,66,0.07);}
+.method-btn .m-name{display:block;font-size:0.75rem;font-family:'DM Serif Display',serif;margin-bottom:3px;font-weight:400;}
+.method-btn .m-when{display:block;font-size:0.54rem;letter-spacing:0.10em;opacity:0.65;}
+
+.solve-method-btn{width:100%;margin-top:18px;font-family:'DM Mono',monospace;font-size:0.70rem;letter-spacing:0.26em;text-transform:uppercase;padding:13px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.28);color:var(--gold);cursor:pointer;transition:all 0.3s;}
+.solve-method-btn:hover{background:rgba(245,200,66,0.15);border-color:var(--gold);}
+.solve-method-btn:disabled{opacity:0.25;cursor:default;}
+
+/* Working */
+.working-area{width:100%;background:var(--card);border:1px solid var(--border);padding:40px 36px;min-height:280px;display:flex;flex-direction:column;gap:34px;position:relative;animation:rise 1s ease forwards 0.4s;opacity:0;}
+.wa-tag{position:absolute;top:0;left:24px;background:var(--bg);padding:0 12px;font-size:0.53rem;letter-spacing:0.30em;color:var(--muted);text-transform:uppercase;transform:translateY(-50%);}
+.wa-placeholder{color:var(--muted);font-size:0.70rem;letter-spacing:0.16em;text-align:center;margin:auto;line-height:2.4;}
+
+.math-line{display:flex;flex-direction:column;gap:10px;opacity:0;transform:translateY(12px);transition:opacity 0.55s ease,transform 0.55s ease;}
+.math-line.show{opacity:1;transform:translateY(0);}
+.line-tag{font-size:0.54rem;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);}
+.line-expr{font-family:'DM Serif Display',serif;font-size:clamp(1.05rem,4.5vw,1.65rem);line-height:1.85;letter-spacing:0.06em;color:var(--text);}
+.line-expr .va{color:var(--blue);}
+.line-expr .vb{color:var(--cyan);}
+.line-expr .vc{color:var(--rose);}
+.line-expr .hl{color:var(--gold);}
+.line-expr .res{color:var(--cyan);}
+.line-expr .root{color:var(--gold);}
+.line-expr .neg{color:var(--rose);}
+.line-expr .frm{color:var(--violet);font-style:italic;}
+.line-expr .ok{color:var(--green);}
+
+.section-break{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);opacity:0;transition:opacity 0.5s;}
+.section-break.show{opacity:1;}
+
+/* Dots + controls */
+.prog-dots{display:flex;gap:9px;justify-content:center;animation:rise 1s ease forwards 0.5s;opacity:0;}
+.pdot{width:7px;height:7px;border-radius:50%;border:1px solid rgba(77,159,255,0.20);transition:all 0.4s;}
+.pdot.done{background:rgba(77,159,255,0.45);border-color:rgba(77,159,255,0.45);}
+.pdot.active{background:var(--blue);border-color:var(--blue);transform:scale(1.55);box-shadow:0 0 9px rgba(77,159,255,0.7);}
+
+.ctrl-row{width:100%;display:flex;gap:13px;animation:rise 1s ease forwards 0.55s;opacity:0;}
+.next-btn{flex:1;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.24em;text-transform:uppercase;padding:14px;background:rgba(0,207,168,0.07);border:1px solid rgba(0,207,168,0.22);color:var(--cyan);cursor:pointer;transition:all 0.3s;}
+.next-btn:hover{background:rgba(0,207,168,0.14);border-color:var(--cyan);}
+.next-btn:disabled{opacity:0.20;cursor:default;}
+.reset-btn{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.22em;text-transform:uppercase;padding:14px 20px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.3s;}
+.reset-btn:hover{border-color:var(--rose);color:var(--rose);}
+
+/* Result */
+.result-banner{width:100%;background:rgba(0,207,168,0.04);border:1px solid rgba(0,207,168,0.20);padding:28px 32px;text-align:center;display:none;animation:rise 0.8s ease forwards;}
+.result-banner.show{display:block;}
+.result-lbl{font-size:0.58rem;letter-spacing:0.28em;color:var(--muted);text-transform:uppercase;margin-bottom:14px;}
+.result-val{font-family:'DM Serif Display',serif;font-size:clamp(1.2rem,5vw,2rem);color:var(--gold);letter-spacing:0.08em;line-height:1.5;}
+.result-note{font-size:0.68rem;color:var(--cyan);margin-top:12px;letter-spacing:0.14em;}
+
+/* Graph */
+.graph-panel{width:100%;background:var(--card);border:1px solid var(--border);padding:22px 22px 18px;display:none;}
+.graph-panel.show{display:block;}
+.graph-lbl{font-size:0.57rem;letter-spacing:0.24em;color:var(--muted);text-transform:uppercase;margin-bottom:13px;}
+canvas#graph{width:100%;height:220px;display:block;}
+
+@keyframes rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>Quadratic Solver<br><em>Smart Method Selector</em></h1>
+    <p>enter  your  equation  ·  get  the  best  method  ·  solve  step  by  step</p>
+  </div>
+
+  <div class="input-card">
+    <div class="input-label">Enter  coefficients  ·  ax²  +  bx  +  c  =  0</div>
+    <div class="eq-display" id="eqDisplay">
+      <span class="ca">1</span><span class="op">x²  +  </span><span class="cb">5</span><span class="op">x  +  </span><span class="cc">6</span><span class="op">  =  0</span>
+    </div>
+    <div class="fields">
+      <div class="field-grp">
+        <div class="field-lbl" style="color:var(--blue)">a  ( x² )</div>
+        <input class="field-in fa" id="inA" type="text" inputmode="decimal" value="1" placeholder="e.g. 2/3" oninput="updateEq()">
+      </div>
+      <div class="field-grp">
+        <div class="field-lbl" style="color:var(--cyan)">b  ( x )</div>
+        <input class="field-in fb" id="inB" type="text" inputmode="decimal" value="5" placeholder="e.g. -1/2" oninput="updateEq()">
+      </div>
+      <div class="field-grp">
+        <div class="field-lbl" style="color:var(--rose)">c  ( constant )</div>
+        <input class="field-in fc" id="inC" type="text" inputmode="decimal" value="6" placeholder="e.g. 3/4" oninput="updateEq()">
+      </div>
+    </div>
+    <div class="frac-hint">Accepts:  integers  ·  decimals  ·  fractions  ( e.g.  2/3 ,  -1/4 ,  3/2 )</div>
+    <button class="analyse-btn" onclick="analyseEquation()">⟶  &nbsp;  Analyse  Equation</button>
+  </div>
+
+  <div class="method-panel" id="methodPanel">
+    <div class="mp-title">Analysis  &amp;  Method  Recommendation</div>
+    <div class="suggestion">
+      <div class="suggest-icon" id="suggestIcon">★</div>
+      <div class="suggest-body">
+        <div class="suggest-head" id="suggestHead"></div>
+        <div class="suggest-why"  id="suggestWhy"></div>
+      </div>
+    </div>
+    <div class="mp-label">Choose  your  method  to  solve</div>
+    <div class="methods-grid">
+      <button class="method-btn" id="btnFactor"   onclick="selectMethod('factor')">
+        <span class="m-name">Factoring</span><span class="m-when">Find  two  brackets</span>
+      </button>
+      <button class="method-btn" id="btnComplete" onclick="selectMethod('complete')">
+        <span class="m-name">Completing  Square</span><span class="m-when">Perfect  square  form</span>
+      </button>
+      <button class="method-btn" id="btnFormula"  onclick="selectMethod('formula')">
+        <span class="m-name">Quadratic  Formula</span><span class="m-when">Universal  method</span>
+      </button>
+      <button class="method-btn" id="btnGraph"    onclick="selectMethod('graph')">
+        <span class="m-name">Graphing</span><span class="m-when">Visual  estimation</span>
+      </button>
+    </div>
+    <button class="solve-method-btn" id="solveMethodBtn" onclick="startSolve()" disabled>
+      Select  a  method  above  to  solve
+    </button>
+  </div>
+
+  <div class="working-area" id="workingArea">
+    <div class="wa-tag">Working</div>
+    <div class="wa-placeholder">Analyse  your  equation  ·  choose  a  method  ·  solve  step  by  step</div>
+  </div>
+
+  <div class="prog-dots" id="progDots"></div>
+
+  <div class="ctrl-row" id="ctrlRow" style="display:none">
+    <button class="next-btn" id="nextBtn" onclick="nextStep()">▶  &nbsp;  Next  Step</button>
+    <button class="reset-btn" onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="result-banner" id="resultBanner">
+    <div class="result-lbl">Solution</div>
+    <div class="result-val"  id="resultVal"></div>
+    <div class="result-note" id="resultNote"></div>
+  </div>
+
+  <div class="graph-panel" id="graphPanel">
+    <div class="graph-lbl">Parabola  ·  y  =  ax²  +  bx  +  c</div>
+    <canvas id="graph" height="220"></canvas>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ─── Fraction parser ─────────────────────────────────────────
+function parseFrac(s) {
+  s = String(s).trim();
+  if (s === '' || s === '-') return 0;
+  var m = s.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+  if (m) {
+    var d = parseFloat(m[2]);
+    if (d === 0) return NaN;
+    return parseFloat(m[1]) / d;
+  }
+  var n = parseFloat(s);
+  return isNaN(n) ? NaN : n;
+}
+
+// ─── Formatting helpers ───────────────────────────────────────
+function fmt(n) {
+  if (!isFinite(n)) return '?';
+  return String(Math.round(n * 100000) / 100000);
+}
+
+function absN(n) { return Math.abs(n); }
+
+function sgnS(n) { return n >= 0 ? '  +  ' : '  −  '; }
+
+// Show fraction as typed if it contains "/", else show decimal
+function dispFrac(raw, val) {
+  raw = String(raw).trim();
+  if (raw.indexOf('/') !== -1) return raw;
+  return fmt(val);
+}
+
+// ─── Live equation display ────────────────────────────────────
+function updateEq() {
+  var aStr = document.getElementById('inA').value;
+  var bStr = document.getElementById('inB').value;
+  var cStr = document.getElementById('inC').value;
+
+  var a = parseFrac(aStr);
+  var b = parseFrac(bStr);
+  var c = parseFrac(cStr);
+
+  document.getElementById('inA').classList.toggle('invalid', isNaN(a) && aStr.trim() !== '');
+  document.getElementById('inB').classList.toggle('invalid', isNaN(b) && bStr.trim() !== '');
+  document.getElementById('inC').classList.toggle('invalid', isNaN(c) && cStr.trim() !== '');
+
+  if (isNaN(a) || isNaN(b) || isNaN(c)) return;
+
+  var bSign = b >= 0 ? '  +  ' : '  −  ';
+  var cSign = c >= 0 ? '  +  ' : '  −  ';
+  var dA = dispFrac(aStr, a);
+  var dB = dispFrac(bStr.replace(/^-/, ''), absN(b));
+  var dC = dispFrac(cStr.replace(/^-/, ''), absN(c));
+
+  document.getElementById('eqDisplay').innerHTML =
+    '<span class="ca">' + dA + '</span>' +
+    '<span class="op">x²' + bSign + '</span>' +
+    '<span class="cb">' + dB + '</span>' +
+    '<span class="op">x' + cSign + '</span>' +
+    '<span class="cc">' + dC + '</span>' +
+    '<span class="op">  =  0</span>';
+}
+
+// ─── State ───────────────────────────────────────────────────
+var _a, _b, _c, _disc, _r1, _r2;
+var _recommended = '', _selected = '';
+var steps = [], stepIdx = 0;
+
+function isPerfectSq(n) {
+  if (n < 0 || !isFinite(n)) return false;
+  var s = Math.round(Math.sqrt(n));
+  return Math.abs(s * s - n) < 0.0001;
+}
+
+function canFactor(a, b, c, disc) {
+  if (disc < 0) return false;
+  if (!isPerfectSq(disc)) return false;
+  var r1 = (-b + Math.sqrt(disc)) / (2 * a);
+  var r2 = (-b - Math.sqrt(disc)) / (2 * a);
+  return (Math.abs(r1 - Math.round(r1)) < 0.0001) && (Math.abs(r2 - Math.round(r2)) < 0.0001);
+}
+
+// ─── Analyse ─────────────────────────────────────────────────
+function analyseEquation() {
+  var aStr = document.getElementById('inA').value;
+  var bStr = document.getElementById('inB').value;
+  var cStr = document.getElementById('inC').value;
+
+  _a = parseFrac(aStr);
+  _b = parseFrac(bStr);
+  _c = parseFrac(cStr);
+
+  if (isNaN(_a) || isNaN(_b) || isNaN(_c)) {
+    alert('Please enter valid numbers or fractions  ( e.g.  2/3,  -1/4,  0.5 )');
+    return;
+  }
+  if (_a === 0) { alert('"a" cannot be zero for a quadratic equation.'); return; }
+
+  _disc = _b * _b - 4 * _a * _c;
+  _r1 = null; _r2 = null; _selected = '';
+
+  var icon, head, why, rec;
+  if (canFactor(_a, _b, _c, _disc)) {
+    rec='factor'; icon='✦'; head='Factoring';
+    why='Δ = ' + fmt(_disc) + ' is a perfect square and the roots are integers.\nFactoring gives the cleanest, most elegant solution.';
+  } else if (_a === 1 && Number.isInteger(_b) && Number.isInteger(_c) && _disc >= 0) {
+    rec='complete'; icon='◈'; head='Completing the Square';
+    why='a = 1 makes completing the square straightforward.\nThis method also reveals the vertex form of the parabola.';
+  } else if (_disc >= 0) {
+    rec='formula'; icon='⟁'; head='Quadratic Formula';
+    why='Δ = ' + fmt(_disc) + ' — not a perfect square, so factoring won\'t give clean integers.\nThe quadratic formula works reliably for any equation.';
+  } else {
+    rec='formula'; icon='⟁'; head='Quadratic Formula';
+    why='Δ = ' + fmt(_disc) + ' < 0 — no real roots.\nThe quadratic formula will reveal the complex (imaginary) roots.';
+  }
+
+  _recommended = rec;
+  document.getElementById('suggestIcon').textContent = icon;
+  document.getElementById('suggestHead').textContent = head;
+  document.getElementById('suggestWhy').textContent  = why;
+
+  ['btnFactor','btnComplete','btnFormula','btnGraph'].forEach(function(id) {
+    document.getElementById(id).classList.remove('recommended','selected');
+  });
+  var map = {factor:'btnFactor',complete:'btnComplete',formula:'btnFormula',graph:'btnGraph'};
+  document.getElementById(map[rec]).classList.add('recommended');
+
+  document.getElementById('methodPanel').classList.add('show');
+  document.getElementById('solveMethodBtn').disabled = true;
+  document.getElementById('solveMethodBtn').textContent = 'Select  a  method  above  to  solve';
+  resetWorking();
+}
+
+// ─── Select method ────────────────────────────────────────────
+function selectMethod(m) {
+  _selected = m;
+  ['btnFactor','btnComplete','btnFormula','btnGraph'].forEach(function(id) {
+    document.getElementById(id).classList.remove('selected');
+  });
+  var map = {factor:'btnFactor',complete:'btnComplete',formula:'btnFormula',graph:'btnGraph'};
+  document.getElementById(map[m]).classList.add('selected');
+  var names = {factor:'Factoring',complete:'Completing  the  Square',formula:'Quadratic  Formula',graph:'Graphing'};
+  document.getElementById('solveMethodBtn').disabled = false;
+  document.getElementById('solveMethodBtn').textContent = '▶  Solve  using  ' + names[m];
+}
+
+// ─── Step engine ──────────────────────────────────────────────
+function addStep(tag, html, brk) {
+  steps.push({tag: tag, html: html, brk: !!brk});
+}
+
+function showStep() {
+  if (stepIdx >= steps.length) return;
+  var s = steps[stepIdx];
+  var wa = document.getElementById('workingArea');
+
+  if (s.brk && stepIdx > 0) {
+    var br = document.createElement('div');
+    br.className = 'section-break';
+    wa.appendChild(br);
+    setTimeout(function() { br.classList.add('show'); }, 50);
+  }
+
+  var line = document.createElement('div');
+  line.className = 'math-line';
+  line.innerHTML = '<div class="line-tag">' + s.tag + '</div><div class="line-expr">' + s.html + '</div>';
+  wa.appendChild(line);
+  setTimeout(function() { line.classList.add('show'); }, 80);
+  setTimeout(function() { line.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 220);
+
+  if (stepIdx > 0) {
+    var prev = document.getElementById('pd_' + (stepIdx-1));
+    if (prev) prev.className = 'pdot done';
+  }
+  var cur = document.getElementById('pd_' + stepIdx);
+  if (cur) cur.className = 'pdot active';
+
+  if (stepIdx === steps.length - 1) {
+    document.getElementById('nextBtn').textContent = '✓  Complete';
+    document.getElementById('nextBtn').disabled = true;
+    setTimeout(showFinal, 600);
+  }
+}
+
+function nextStep() {
+  if (stepIdx >= steps.length - 1) return;
+  stepIdx++;
+  showStep();
+}
+
+// ─── Start solve ──────────────────────────────────────────────
+function startSolve() {
+  if (!_selected) return;
+  steps = []; stepIdx = 0;
+
+  var wa = document.getElementById('workingArea');
+  wa.innerHTML = '<div class="wa-tag">Working</div>';
+
+  document.getElementById('resultBanner').classList.remove('show');
+  document.getElementById('resultBanner').style.display = 'none';
+  document.getElementById('graphPanel').classList.remove('show');
+  document.getElementById('graphPanel').style.display = 'none';
+
+  if (_selected === 'factor')   buildFactor();
+  if (_selected === 'complete') buildComplete();
+  if (_selected === 'formula')  buildFormula();
+  if (_selected === 'graph')    buildGraph();
+
+  var dotsEl = document.getElementById('progDots');
+  dotsEl.innerHTML = '';
+  steps.forEach(function(_, i) {
+    var d = document.createElement('div');
+    d.className = 'pdot'; d.id = 'pd_' + i;
+    dotsEl.appendChild(d);
+  });
+
+  document.getElementById('ctrlRow').style.display = 'flex';
+  document.getElementById('nextBtn').disabled = false;
+  document.getElementById('nextBtn').textContent = '▶  \u00a0  Next  Step';
+  showStep();
+}
+
+// ─── Show final results ────────────────────────────────────────
+function showFinal() {
+  var last = document.getElementById('pd_' + (steps.length - 1));
+  if (last) last.className = 'pdot done';
+
+  var rb = document.getElementById('resultBanner');
+  rb.style.display = 'block';
+  setTimeout(function() { rb.classList.add('show'); }, 100);
+
+  if (_r1 !== null && _r2 !== null && Math.abs(_r1 - _r2) > 0.0001) {
+    document.getElementById('resultVal').innerHTML = 'x₁  =  ' + fmt(_r1) + '&nbsp;&nbsp;·&nbsp;&nbsp;x₂  =  ' + fmt(_r2);
+    document.getElementById('resultNote').textContent = '✓  Two  distinct  real  solutions';
+  } else if (_r1 !== null) {
+    document.getElementById('resultVal').textContent = 'x  =  ' + fmt(_r1) + '  ( repeated  root )';
+    document.getElementById('resultNote').textContent = '✓  One  repeated  real  solution';
+  } else {
+    var rp = fmt(-_b / (2*_a));
+    var ip = fmt(Math.sqrt(-_disc) / (2*_a));
+    document.getElementById('resultVal').textContent = 'x  =  ' + rp + '  ±  ' + ip + 'i';
+    document.getElementById('resultNote').textContent = '⚠  Complex  solutions  —  no  real  roots';
+  }
+
+  if (_selected !== 'graph') {
+    var gp = document.getElementById('graphPanel');
+    gp.style.display = 'block';
+    setTimeout(function() { gp.classList.add('show'); drawParabola(); }, 350);
+  }
+}
+
+// ─── Factoring ────────────────────────────────────────────────
+function buildFactor() {
+  var a=_a, b=_b, c=_c;
+  var sqD = Math.sqrt(_disc);
+  _r1 = Math.round((-b+sqD)/(2*a)*10000)/10000;
+  _r2 = Math.round((-b-sqD)/(2*a)*10000)/10000;
+  var p1 = Math.round(-_r1*a*10000)/10000;
+  var p2 = Math.round(-_r2*a*10000)/10000;
+
+  addStep('Write  Standard  Form',
+    '<span class="va">'+fmt(a)+'</span>x²'+sgnS(b)+'<span class="vb">'+fmt(absN(b))+'</span>x'+sgnS(c)+'<span class="vc">'+fmt(absN(c))+'</span>  =  0');
+
+  addStep('Find  two  numbers  that  multiply  to  ac  and  add  to  b',
+    'ac  =  <span class="va">'+fmt(a)+'</span>  ×  <span class="vc">'+fmt(c)+'</span>  =  <span class="hl">'+fmt(a*c)+'</span><br>'+
+    'Need  product  <span class="hl">'+fmt(a*c)+'</span>  and  sum  <span class="vb">'+fmt(b)+'</span>', true);
+
+  addStep('The  two  numbers  are',
+    '<span class="hl">'+fmt(p1)+'</span>  and  <span class="hl">'+fmt(p2)+'</span><br>'+
+    fmt(p1)+'  ×  '+fmt(p2)+'  =  <span class="ok">'+fmt(p1*p2)+'  ✓</span><br>'+
+    fmt(p1)+'  +  '+fmt(p2)+'  =  <span class="ok">'+fmt(p1+p2)+'  ✓</span>');
+
+  addStep('Write  in  factored  form',
+    '( x'+sgnS(-_r1)+'<span class="hl">'+fmt(absN(_r1))+'</span> )( x'+sgnS(-_r2)+'<span class="hl">'+fmt(absN(_r2))+'</span> )  =  0', true);
+
+  addStep('Apply  Zero  Product  Property',
+    'x'+sgnS(-_r1)+'<span class="hl">'+fmt(absN(_r1))+'</span>  =  0  &nbsp;&nbsp;or&nbsp;&nbsp;  x'+sgnS(-_r2)+'<span class="hl">'+fmt(absN(_r2))+'</span>  =  0');
+
+  addStep('Solve  for  x',
+    'x  =  <span class="root">'+fmt(_r1)+'</span>  &nbsp;&nbsp;or&nbsp;&nbsp;  x  =  <span class="root">'+fmt(_r2)+'</span>', true);
+
+  var ok1 = Math.abs(a*_r1*_r1+b*_r1+c) < 0.001;
+  var ok2 = Math.abs(a*_r2*_r2+b*_r2+c) < 0.001;
+  addStep('Verify  by  substituting  back',
+    'x₁ = <span class="root">'+fmt(_r1)+'</span>  →  <span class="'+(ok1?'ok':'neg')+'">'+(ok1?'0  ✓':'≠  0  ✗')+'</span><br>'+
+    'x₂ = <span class="root">'+fmt(_r2)+'</span>  →  <span class="'+(ok2?'ok':'neg')+'">'+(ok2?'0  ✓':'≠  0  ✗')+'</span>');
+}
+
+// ─── Completing the square ─────────────────────────────────────
+function buildComplete() {
+  var a=_a, b=_b, c=_c;
+  var b2 = b/a, c2 = c/a;
+
+  addStep('Write  Standard  Form',
+    '<span class="va">'+fmt(a)+'</span>x²'+sgnS(b)+'<span class="vb">'+fmt(absN(b))+'</span>x'+sgnS(c)+'<span class="vc">'+fmt(absN(c))+'</span>  =  0');
+
+  if (a !== 1) {
+    addStep('Divide  everything  by  a = '+fmt(a),
+      'x²'+sgnS(b2)+'<span class="vb">'+fmt(absN(b2))+'</span>x'+sgnS(c2)+'<span class="vc">'+fmt(absN(c2))+'</span>  =  0', true);
+  }
+
+  addStep('Move  constant  to  right  side',
+    'x²'+sgnS(b2)+'<span class="vb">'+fmt(absN(b2))+'</span>x  =  <span class="hl">'+fmt(-c2)+'</span>', true);
+
+  var half = b2/2, halfSq = half*half;
+  addStep('Add  (b/2)²  =  ('+fmt(half)+')²  =  '+fmt(halfSq)+'  to  both  sides',
+    'x²'+sgnS(b2)+'<span class="vb">'+fmt(absN(b2))+'</span>x  +  <span class="hl">'+fmt(halfSq)+'</span>  =  <span class="hl">'+fmt(-c2+halfSq)+'</span>');
+
+  addStep('Write  left  side  as  perfect  square',
+    '( x'+sgnS(half)+'<span class="hl">'+fmt(absN(half))+'</span> )²  =  <span class="hl">'+fmt(-c2+halfSq)+'</span>', true);
+
+  var rhs = -c2+halfSq;
+  if (rhs < 0) {
+    _r1 = null; _r2 = null;
+    addStep('Take  square  root  — complex  result',
+      'x'+sgnS(half)+'<span class="hl">'+fmt(absN(half))+'</span>  =  ±  <span class="neg">'+fmt(Math.sqrt(absN(rhs)))+'i</span>');
+    addStep('Solve  for  x',
+      'x  =  <span class="root">'+fmt(-half)+'  ±  '+fmt(Math.sqrt(absN(rhs)))+'i</span>', true);
+  } else {
+    var sqR = Math.sqrt(rhs);
+    _r1 = -half + sqR; _r2 = -half - sqR;
+    addStep('Take  square  root  of  both  sides',
+      'x'+sgnS(half)+'<span class="hl">'+fmt(absN(half))+'</span>  =  ±  <span class="hl">'+fmt(sqR)+'</span>');
+    addStep('Solve  for  x',
+      'x  =  <span class="hl">'+fmt(-half)+'</span>  +  <span class="hl">'+fmt(sqR)+'</span>  =  <span class="root">'+fmt(_r1)+'</span><br>'+
+      'x  =  <span class="hl">'+fmt(-half)+'</span>  −  <span class="hl">'+fmt(sqR)+'</span>  =  <span class="root">'+fmt(_r2)+'</span>', true);
+    var ok1=Math.abs(a*_r1*_r1+b*_r1+c)<0.001, ok2=Math.abs(a*_r2*_r2+b*_r2+c)<0.001;
+    addStep('Verify',
+      'x₁ = <span class="root">'+fmt(_r1)+'</span>  →  <span class="'+(ok1?'ok':'neg')+'">'+(ok1?'0  ✓':'≠  0  ✗')+'</span><br>'+
+      'x₂ = <span class="root">'+fmt(_r2)+'</span>  →  <span class="'+(ok2?'ok':'neg')+'">'+(ok2?'0  ✓':'≠  0  ✗')+'</span>');
+  }
+}
+
+// ─── Quadratic formula ────────────────────────────────────────
+function buildFormula() {
+  var a=_a, b=_b, c=_c;
+
+  addStep('Write  Standard  Form',
+    '<span class="va">'+fmt(a)+'</span>x²'+sgnS(b)+'<span class="vb">'+fmt(absN(b))+'</span>x'+sgnS(c)+'<span class="vc">'+fmt(absN(c))+'</span>  =  0');
+
+  addStep('Identify  Coefficients',
+    'a  =  <span class="va">'+fmt(a)+'</span>  &nbsp;&nbsp;  b  =  <span class="vb">'+fmt(b)+'</span>  &nbsp;&nbsp;  c  =  <span class="vc">'+fmt(c)+'</span>');
+
+  addStep('Quadratic  Formula',
+    '<span class="frm">x  =  ( −b  ±  √( b²  −  4ac ) )  /  2a</span>', true);
+
+  addStep('Calculate  the  Discriminant',
+    'Δ  =  ('+fmt(b)+')²  −  4 × <span class="va">'+fmt(a)+'</span> × <span class="vc">'+fmt(c)+'</span><br>'+
+    'Δ  =  <span class="hl">'+fmt(b*b)+'</span>  −  <span class="hl">'+fmt(4*a*c)+'</span>  =  <span class="'+(_disc>0?'res':_disc<0?'neg':'hl')+'">'+fmt(_disc)+'</span>');
+
+  var dm = _disc>0
+    ? 'Δ  &gt;  0  →  <span class="res">Two  distinct  real  roots</span>'
+    : _disc===0
+    ? 'Δ  =  0  →  <span class="hl">One  repeated  root</span>'
+    : 'Δ  &lt;  0  →  <span class="neg">No  real  roots  ( complex )</span>';
+  addStep('Discriminant  Analysis', dm, true);
+
+  if (_disc >= 0) {
+    var sqD = Math.sqrt(_disc);
+    _r1 = (-b+sqD)/(2*a); _r2 = (-b-sqD)/(2*a);
+    if (_disc === 0) {
+      addStep('Calculate  Root',
+        'x  =  −('+fmt(b)+')  /  (2×'+fmt(a)+')  =  <span class="root">'+fmt(_r1)+'</span>', true);
+    } else {
+      addStep('Calculate  x₁  and  x₂',
+        'x₁  =  ( <span class="hl">'+fmt(-b)+'</span>  +  <span class="hl">'+fmt(sqD)+'</span> )  /  <span class="hl">'+fmt(2*a)+'</span>  =  <span class="root">'+fmt(_r1)+'</span><br>'+
+        'x₂  =  ( <span class="hl">'+fmt(-b)+'</span>  −  <span class="hl">'+fmt(sqD)+'</span> )  /  <span class="hl">'+fmt(2*a)+'</span>  =  <span class="root">'+fmt(_r2)+'</span>', true);
+    }
+    var ok1=Math.abs(a*_r1*_r1+b*_r1+c)<0.001;
+    var ok2=_disc>0?Math.abs(a*_r2*_r2+b*_r2+c)<0.001:true;
+    addStep('Verify',
+      (_disc===0)
+        ? 'x = <span class="root">'+fmt(_r1)+'</span>  →  <span class="'+(ok1?'ok':'neg')+'">'+(ok1?'0  ✓':'≠  0  ✗')+'</span>'
+        : 'x₁ = <span class="root">'+fmt(_r1)+'</span>  →  <span class="'+(ok1?'ok':'neg')+'">'+(ok1?'0  ✓':'≠  0  ✗')+'</span><br>'+
+          'x₂ = <span class="root">'+fmt(_r2)+'</span>  →  <span class="'+(ok2?'ok':'neg')+'">'+(ok2?'0  ✓':'≠  0  ✗')+'</span>');
+  } else {
+    _r1=null; _r2=null;
+    var rp=fmt(-b/(2*a)), ip=fmt(Math.sqrt(-_disc)/(2*a));
+    addStep('Complex  Roots',
+      'x₁  =  <span class="root">'+rp+'  +  '+ip+'i</span><br>x₂  =  <span class="root">'+rp+'  −  '+ip+'i</span>', true);
+  }
+}
+
+// ─── Graphing ─────────────────────────────────────────────────
+function buildGraph() {
+  var a=_a, b=_b, c=_c;
+  var vx=-b/(2*a), vy=a*vx*vx+b*vx+c;
+
+  addStep('Write  Parabola  Function',
+    'y  =  <span class="va">'+fmt(a)+'</span>x²'+sgnS(b)+'<span class="vb">'+fmt(absN(b))+'</span>x'+sgnS(c)+'<span class="vc">'+fmt(absN(c))+'</span>');
+
+  addStep('Find  the  Vertex',
+    'x  =  −b/2a  =  −('+fmt(b)+') / 2('+fmt(a)+')  =  <span class="hl">'+fmt(vx)+'</span><br>'+
+    'y  =  f('+fmt(vx)+')  =  <span class="hl">'+fmt(vy)+'</span><br>'+
+    'Vertex:  ( <span class="hl">'+fmt(vx)+'</span> ,  <span class="hl">'+fmt(vy)+'</span> )', true);
+
+  addStep('Direction  of  Opening',
+    a>0
+      ? 'a  =  <span class="va">'+fmt(a)+'</span>  &gt;  0  →  <span class="res">Opens  upward  ∪</span>'
+      : 'a  =  <span class="va">'+fmt(a)+'</span>  &lt;  0  →  <span class="res">Opens  downward  ∩</span>');
+
+  addStep('Y-Intercept',
+    'Set  x = 0  →  y  =  <span class="vc">'+fmt(c)+'</span>  →  Point:  ( 0 ,  <span class="hl">'+fmt(c)+'</span> )');
+
+  if (_disc>0) {
+    _r1=(-b+Math.sqrt(_disc))/(2*a); _r2=(-b-Math.sqrt(_disc))/(2*a);
+    addStep('X-Intercepts  ( Roots )',
+      'Parabola  crosses  x-axis  at:<br>x₁  ≈  <span class="root">'+fmt(_r1)+'</span>  &nbsp;&nbsp;  x₂  ≈  <span class="root">'+fmt(_r2)+'</span>', true);
+  } else if (_disc===0) {
+    _r1=-b/(2*a); _r2=_r1;
+    addStep('X-Intercept  ( One  Root )',
+      'Parabola  just  touches  x-axis  at:<br>x  =  <span class="root">'+fmt(_r1)+'</span>', true);
+  } else {
+    _r1=null; _r2=null;
+    addStep('X-Intercepts',
+      '<span class="neg">Parabola  does  not  cross  the  x-axis.<br>No  real  roots.</span>', true);
+  }
+
+  addStep('Read  the  Graph',
+    '<span class="res">The  x-intercepts  are  the  solutions.<br>Vertex  is  the  minimum  or  maximum  point.</span>');
+
+  var gp=document.getElementById('graphPanel');
+  gp.style.display='block';
+  setTimeout(function(){ gp.classList.add('show'); drawParabola(); }, 400);
+}
+
+// ─── Reset ────────────────────────────────────────────────────
+function resetWorking() {
+  steps=[]; stepIdx=0;
+  var wa=document.getElementById('workingArea');
+  wa.innerHTML='<div class="wa-tag">Working</div><div class="wa-placeholder">Analyse  your  equation  ·  choose  a  method  ·  solve  step  by  step</div>';
+  document.getElementById('progDots').innerHTML='';
+  document.getElementById('ctrlRow').style.display='none';
+  document.getElementById('nextBtn').textContent='▶  \u00a0  Next  Step';
+  document.getElementById('resultBanner').classList.remove('show');
+  document.getElementById('resultBanner').style.display='none';
+  document.getElementById('graphPanel').classList.remove('show');
+  document.getElementById('graphPanel').style.display='none';
+}
+
+function resetAll() {
+  resetWorking();
+  document.getElementById('methodPanel').classList.remove('show');
+  _selected=''; _recommended='';
+}
+
+// ─── Draw parabola ────────────────────────────────────────────
+function drawParabola() {
+  var canvas=document.getElementById('graph');
+  var dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr;
+  canvas.height=canvas.offsetHeight*dpr;
+  var ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  var W=canvas.offsetWidth, H=canvas.offsetHeight;
+  var a=_a, b=_b, c=_c;
+  var vx=-b/(2*a);
+  var span=Math.max(6,Math.abs(_r1||6),Math.abs(_r2||6),Math.abs(vx))+3;
+  var xMin=vx-span, xMax=vx+span;
+  var yMin=Infinity, yMax=-Infinity;
+  for(var i=0;i<=150;i++){
+    var xv=xMin+(xMax-xMin)*i/150, yv=a*xv*xv+b*xv+c;
+    if(isFinite(yv)){yMin=Math.min(yMin,yv);yMax=Math.max(yMax,yv);}
+  }
+  var yPad=(yMax-yMin)*0.24||2;
+  yMin-=yPad; yMax+=yPad;
+  var sxF=function(x){return (x-xMin)/(xMax-xMin)*W;};
+  var syF=function(y){return H-(y-yMin)/(yMax-yMin)*H;};
+
+  function base(){
+    ctx.fillStyle='#111520';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(77,159,255,0.05)';ctx.lineWidth=1;
+    for(var x=Math.ceil(xMin);x<=xMax;x++){ctx.beginPath();ctx.moveTo(sxF(x),0);ctx.lineTo(sxF(x),H);ctx.stroke();}
+    var y0=syF(0),x0=sxF(0);
+    ctx.strokeStyle='rgba(221,230,248,0.16)';ctx.lineWidth=1;
+    if(y0>=0&&y0<=H){ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();}
+    if(x0>=0&&x0<=W){ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0,H);ctx.stroke();}
+    ctx.fillStyle='rgba(221,230,248,0.22)';ctx.font='10px DM Mono';ctx.textAlign='center';
+    for(var xn=Math.ceil(xMin);xn<=xMax;xn+=Math.ceil(span/4)){
+      if(xn===0)continue;
+      var sxv2=sxF(xn),syv2=syF(0);
+      if(syv2>=0&&syv2<=H)ctx.fillText(xn,sxv2,Math.min(syv2+13,H-4));
+    }
+  }
+
+  var pts=[];
+  for(var j=0;j<=260;j++){
+    var xp=xMin+(xMax-xMin)*j/260;
+    pts.push([sxF(xp),syF(a*xp*xp+b*xp+c)]);
+  }
+
+  var grad=ctx.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'rgba(77,159,255,0.2)');
+  grad.addColorStop(0.5,'#4d9fff');
+  grad.addColorStop(1,'rgba(77,159,255,0.2)');
+
+  var drawn=0;
+  function anim(){
+    drawn=Math.min(drawn+5,pts.length);
+    base();
+    ctx.strokeStyle=grad;ctx.lineWidth=2.5;ctx.lineJoin='round';
+    ctx.shadowColor='#4d9fff';ctx.shadowBlur=9;
+    ctx.beginPath();
+    for(var k=0;k<drawn;k++) k===0?ctx.moveTo(pts[k][0],pts[k][1]):ctx.lineTo(pts[k][0],pts[k][1]);
+    ctx.stroke();ctx.shadowBlur=0;
+    if(drawn===pts.length){
+      var drawRoot=function(rx){
+        var srx=sxF(rx),sry=syF(0);
+        ctx.beginPath();ctx.arc(srx,sry,5,0,Math.PI*2);
+        ctx.fillStyle='#f5c842';ctx.shadowColor='#f5c842';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0;
+        ctx.fillStyle='rgba(221,230,248,0.75)';ctx.font='10px DM Mono';ctx.textAlign='center';
+        ctx.fillText('x='+fmt(rx),srx,sry-13);
+      };
+      if(_r1!==null) drawRoot(_r1);
+      if(_r2!==null&&Math.abs(_r2-_r1)>0.001) drawRoot(_r2);
+      var vy2=a*vx*vx+b*vx+c;
+      var svx=sxF(vx),svy=syF(vy2);
+      ctx.beginPath();ctx.arc(svx,svy,4,0,Math.PI*2);
+      ctx.fillStyle='#00cfa8';ctx.shadowColor='#00cfa8';ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(0,207,168,0.7)';ctx.font='9px DM Mono';ctx.textAlign='center';
+      ctx.fillText('vertex',svx,svy+(a>0?-13:15));
+    }
+    if(drawn<pts.length) requestAnimationFrame(anim);
+  }
+  anim();
+}
+
+// Init
+updateEq();
+</script>
+</body>
+</html>
